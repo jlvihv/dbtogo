@@ -1,6 +1,6 @@
 # dbtogo
 
-这是一个将数据库中存在的表转换为 go 结构体的命令行工具
+这是一个将数据库中存在的表转换为 go 结构体的命令行工具, 应当是同类小工具中完成度较高, 实现较优雅的一个, 哈哈
 
 支持三种输出方式:
 1. 输出到标准输出
@@ -24,8 +24,8 @@
 [db]
 ip = "127.0.0.1"
 port = "3306"
-username = "username"
-password = "password"
+username = "root"
+password = "your_password"
 charset = "utf8mb4"
 ```
 
@@ -33,6 +33,24 @@ charset = "utf8mb4"
 
 使用示例:
 
+输出到命令行
 ```bash
-dbtogo --db db_name --table table_name
+dbtogo --db 数据库名 --table 表名
 ```
+
+输出到系统剪贴板
+```bash
+dbtogo --db 数据库名 --table 表名 --clip
+```
+
+输出到文件
+```bash
+dbtogo --db 数据库名 --table 表名 --file struct.txt
+```
+
+生成各种 tag 标签, 可以写在一起, 如下, 将生成 json gorm toml 的 tag
+```bash
+dbtogo --db 数据库名 --table 表名 -jgt
+```
+
+更多信息, 使用 -h 选项查看
