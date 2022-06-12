@@ -86,10 +86,10 @@ func run() {
 	if clip {
 		c.Clipboard()
 	}
-	if stdout {
-		c.Stdout()
-	}
 	if len(file) != 0 {
 		c.File(file)
+	}
+	if stdout {
+		c.Stdout()
 	}
 }
