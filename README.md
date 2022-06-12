@@ -54,3 +54,7 @@ dbtogo --db 数据库名 --table 表名 -jgt
 ```
 
 更多信息, 使用 -h 选项查看
+
+## License
+
+MIT
