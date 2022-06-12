@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	configPath = "config.toml"
+	configPath = ""
 	config     *defines.Config
 	once       sync.Once
 )
@@ -22,4 +22,8 @@ func GetConfig() *defines.Config {
 		}
 	})
 	return config
+}
+
+func ConfigPath() *string {
+	return &configPath
 }
