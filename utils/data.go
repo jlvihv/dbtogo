@@ -17,7 +17,7 @@ var (
 func GetConfig() *defines.Config {
 	once.Do(func() {
 		if _, err := toml.DecodeFile(configPath, &config); err != nil {
-			fmt.Println("读取配置文件失败, 请检查当前目录下是否存在 config.toml 文件")
+			fmt.Println("读取配置文件失败, 请检查当前目录下是否存在 config.toml 文件, 以及配置文件格式是否书写正确")
 			log.Fatal(err)
 		}
 	})
