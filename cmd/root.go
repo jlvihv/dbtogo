@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"dbtogo/controller"
 	"fmt"
+	"github.com/jlvihv/dbtogo/controller"
 	"github.com/spf13/cobra"
 	"log"
 )

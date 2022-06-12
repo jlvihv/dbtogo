@@ -1,8 +1,8 @@
 package gorm_db
 
 import (
-	"dbtogo/defines"
 	"fmt"
+	"github.com/jlvihv/dbtogo/defines"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"sync"

@@ -1,6 +1,6 @@
 package main
 
-import "dbtogo/cmd"
+import "github.com/jlvihv/dbtogo/cmd"
 
 func main() {
 	cmd.Execute()

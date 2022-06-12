@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"dbtogo/defines"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/jlvihv/dbtogo/defines"
 	"log"
 	"sync"
 )

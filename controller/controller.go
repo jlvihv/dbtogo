@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"dbtogo/defines"
-	"dbtogo/gorm_db"
-	"dbtogo/utils"
 	"fmt"
 	"github.com/atotto/clipboard"
+	"github.com/jlvihv/dbtogo/defines"
+	"github.com/jlvihv/dbtogo/gorm_db"
+	"github.com/jlvihv/dbtogo/utils"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"strings"

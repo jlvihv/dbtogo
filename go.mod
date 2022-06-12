@@ -1,4 +1,4 @@
-module dbtogo
+module github.com/jlvihv/dbtogo
 
 go 1.18
 
