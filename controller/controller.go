@@ -153,6 +153,7 @@ func (self *controller) Clipboard() {
 	if err != nil {
 		fmt.Printf("\n输出到剪贴板失败 error: %s\n", err)
 		fmt.Println("请手动复制")
+		self.Stdout()
 		return
 	}
 	fmt.Println("成功")
