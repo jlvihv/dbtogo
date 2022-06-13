@@ -51,7 +51,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&tag, "tag", "", "", "生成自定义标签")
 
 	rootCmd.Flags().BoolVarP(&clip, "clip", "", false, "输出到系统剪贴板")
-	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", true, "输出到标准输出")
+	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", false, "输出到标准输出")
 	rootCmd.Flags().StringVarP(&file, "file", "", "", "输出到文件")
 
 	rootCmd.Flags().StringVarP(utils.ConfigPath(), "config", "", "config.toml", "指定配置文件所在位置")
@@ -87,6 +87,10 @@ func run() {
 		c.AddCommentTag()
 	}
 	c.ToUpperCamelCase().Generate()
+
+	if !clip && len(file) == 0 && !stdout {
+		c.Stdout()
+	}
 	if clip {
 		c.Clipboard()
 	}

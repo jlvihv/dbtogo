@@ -63,13 +63,21 @@ func (self *controller) ConvertToStructColumns() *controller {
 	for _, column := range self.columns {
 		structColumns = append(structColumns, &defines.StructColumn{
 			Name:    column.ColumnName,
-			Type:    defines.DBTypeToStructType[column.DataType],
+			Type:    getStructType(column.DataType),
 			Tag:     "",
 			Comment: column.ColumnComment,
 		})
 	}
 	self.structColumns = structColumns
 	return self
+}
+
+func getStructType(dbType string) string {
+	t, ok := defines.DBTypeToStructType[dbType]
+	if !ok {
+		t = "unknown"
+	}
+	return t
 }
 
 func (self *controller) ToUpperCamelCase() *controller {
@@ -145,7 +153,6 @@ func (self *controller) Clipboard() {
 	if err != nil {
 		fmt.Printf("\n输出到剪贴板失败 error: %s\n", err)
 		fmt.Println("请手动复制")
-		self.Stdout()
 		return
 	}
 	fmt.Println("成功")
