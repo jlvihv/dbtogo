@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-go install github.com/jlvihv/dbtogo@0.0.2
+go install github.com/jlvihv/dbtogo@0.0.3
 ```
 
 ## 使用
