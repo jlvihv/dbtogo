@@ -193,6 +193,8 @@ func (self *controller) AddTag(tag string) *controller {
 			if len(v.Comment) != 0 {
 				tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Comment)
 			}
+		} else if tag == "gorm" {
+			tagValue = fmt.Sprintf("%s:\"column:%s\"", tag, v.Name)
 		} else {
 			tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Name)
 		}
