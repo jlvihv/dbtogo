@@ -189,13 +189,14 @@ func (self *controller) AddTag(tag string) *controller {
 	}
 	for i, v := range self.structColumns {
 		var tagValue string
-		if tag == "comment" {
+		switch tag {
+		case "comment":
 			if len(v.Comment) != 0 {
 				tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Comment)
 			}
-		} else if tag == "gorm" {
+		case "gorm":
 			tagValue = fmt.Sprintf("%s:\"column:%s\"", tag, v.Name)
-		} else {
+		default:
 			tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Name)
 		}
 		if len(v.Tag) != 0 {
