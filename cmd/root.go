@@ -21,7 +21,6 @@ var (
 	clip    bool
 	file    string
 	stdout  bool
-	config  string
 )
 
 var rootCmd = &cobra.Command{

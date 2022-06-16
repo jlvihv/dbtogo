@@ -12,13 +12,18 @@ import (
 )
 
 type controller struct {
-	Error         error
-	db            *gorm.DB
-	dbName        string
-	tableName     string
+	Error      error
+	db         *gorm.DB
+	dbName     string
+	tableNames []string
+	tables     []table
+	structText string
+}
+
+type table struct {
+	name          string
 	columns       []*defines.TableColumn
 	structColumns []*defines.StructColumn
-	structText    string
 }
 
 func NewController() *controller {
@@ -34,41 +39,63 @@ func NewController() *controller {
 	return ctl
 }
 
-func (self *controller) GetColumns(dbName, tableName string) *controller {
+func (self *controller) GetColumns(dbName, tableNames string) *controller {
 	if self == nil || self.Error != nil || self.db == nil {
 		return self
 	}
 	fmt.Println("获取表信息...")
-	self.dbName, self.tableName = dbName, tableName
-	var columns []*defines.TableColumn
-	gormResult := self.db.Table("columns").Select([]string{"column_name", "data_type", "column_key", "is_nullable", "column_type", "column_comment"}).Where("table_schema = ? and table_name = ?", dbName, tableName).Find(&columns)
-	if err := gormResult.Error; err != nil {
-		fmt.Println(err)
-		self.Error = err
+	self.dbName = dbName
+	self.splitTableNames(tableNames)
+	var tables []table
+	for _, tableName := range self.tableNames {
+		var columns []*defines.TableColumn
+		gormResult := self.db.Table("columns").Select([]string{"column_name", "data_type", "column_key", "is_nullable", "column_type", "column_comment"}).
+			Where("table_schema = ? and table_name = ?", dbName, tableName).Find(&columns)
+		if err := gormResult.Error; err != nil {
+			fmt.Println(err)
+			self.Error = err
+			return self
+		}
+		if len(columns) == 0 {
+			fmt.Printf("db: %s, table: %s 没有任何信息\n", self.dbName, tableName)
+			continue
+		}
+		tables = append(tables, table{columns: columns, name: tableName})
+	}
+	self.tables = tables
+	return self
+}
+
+func (self *controller) splitTableNames(tableNames string) *controller {
+	if self == nil || self.Error != nil {
 		return self
 	}
-	if len(columns) == 0 {
-		fmt.Printf("db: %s, table: %s 没有任何信息\n", self.dbName, self.tableName)
-		return self
+	if strings.Contains(tableNames, ",") {
+		tableNames = strings.ReplaceAll(tableNames, " ", "")
+		tableNames := strings.Split(tableNames, ",")
+		self.tableNames = tableNames
+	} else {
+		self.tableNames = []string{tableNames}
 	}
-	self.columns = columns
 	return self
 }
 
 func (self *controller) ConvertToStructColumns() *controller {
-	if self == nil || self.Error != nil || len(self.columns) == 0 {
+	if self == nil || self.Error != nil || len(self.tables) == 0 {
 		return self
 	}
-	structColumns := make([]*defines.StructColumn, 0, len(self.columns))
-	for _, column := range self.columns {
-		structColumns = append(structColumns, &defines.StructColumn{
-			Name:    column.ColumnName,
-			Type:    getStructType(column.DataType),
-			Tag:     "",
-			Comment: column.ColumnComment,
-		})
+	for i, table := range self.tables {
+		structColumns := make([]*defines.StructColumn, 0, len(table.columns))
+		for _, column := range table.columns {
+			structColumns = append(structColumns, &defines.StructColumn{
+				Name:    column.ColumnName,
+				Type:    getStructType(column.DataType),
+				Tag:     "",
+				Comment: column.ColumnComment,
+			})
+		}
+		self.tables[i].structColumns = structColumns
 	}
-	self.structColumns = structColumns
 	return self
 }
 
@@ -81,34 +108,38 @@ func getStructType(dbType string) string {
 }
 
 func (self *controller) ToUpperCamelCase() *controller {
-	if self == nil || self.Error != nil || self.structColumns == nil || len(self.structColumns) == 0 {
+	if self == nil || self.Error != nil || self.tables == nil || len(self.tables) == 0 {
 		return self
 	}
-	self.tableName = utils.UnderscoreToUpperCamelCase(self.tableName)
-	for i, v := range self.structColumns {
-		self.structColumns[i].Name = utils.UnderscoreToUpperCamelCase(v.Name)
+	for i := range self.tables {
+		self.tables[i].name = utils.UnderscoreToUpperCamelCase(self.tables[i].name)
+		for j, column := range self.tables[i].structColumns {
+			self.tables[i].structColumns[j].Name = utils.UnderscoreToUpperCamelCase(column.Name)
+		}
 	}
 	return self
 }
 
 func (self *controller) Generate() *controller {
-	if self == nil || self.Error != nil || len(self.structColumns) == 0 {
+	if self == nil || self.Error != nil || len(self.tables) == 0 {
 		return self
 	}
-	var result []string
-	result = append(result, strings.ReplaceAll(defines.StructTemplateText["title"], "STRUCT_NAME", self.tableName))
-	for _, v := range self.structColumns {
-		line := defines.StructTemplateText["line"]
-		line = strings.ReplaceAll(line, "FIELD_NAME", v.Name)
-		line = strings.ReplaceAll(line, "FIELD_TYPE", v.Type)
-		if len(v.Tag) == 0 {
-			line = strings.ReplaceAll(line, "FIELD_TAG", "")
-		} else {
-			line = strings.ReplaceAll(line, "FIELD_TAG", fmt.Sprintf("`%s`", v.Tag))
+	result := make([]string, 0, 16)
+	for _, table := range self.tables {
+		result = append(result, strings.ReplaceAll(defines.StructTemplateText["title"], "STRUCT_NAME", table.name))
+		for _, column := range table.structColumns {
+			line := defines.StructTemplateText["line"]
+			line = strings.ReplaceAll(line, "FIELD_NAME", column.Name)
+			line = strings.ReplaceAll(line, "FIELD_TYPE", column.Type)
+			if len(column.Tag) == 0 {
+				line = strings.ReplaceAll(line, "FIELD_TAG", "")
+			} else {
+				line = strings.ReplaceAll(line, "FIELD_TAG", fmt.Sprintf("`%s`", column.Tag))
+			}
+			result = append(result, line)
 		}
-		result = append(result, line)
+		result = append(result, defines.StructTemplateText["end"])
 	}
-	result = append(result, defines.StructTemplateText["end"])
 	self.structText = strings.Join(result, "\n")
 	return self
 }
@@ -184,29 +215,31 @@ func (self *controller) AddYamlTag() *controller {
 }
 
 func (self *controller) AddTag(tag string) *controller {
-	if self == nil || self.Error != nil || len(self.structColumns) == 0 || len(tag) == 0 {
+	if self == nil || self.Error != nil || len(self.tables) == 0 || len(tag) == 0 {
 		return self
 	}
-	for i, v := range self.structColumns {
-		var tagValue string
-		switch tag {
-		case "comment":
-			if len(v.Comment) != 0 {
-				tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Comment)
+	for index, table := range self.tables {
+		for i, v := range table.structColumns {
+			var tagValue string
+			switch tag {
+			case "comment":
+				if len(v.Comment) != 0 {
+					tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Comment)
+				}
+			case "gorm":
+				tagValue = fmt.Sprintf("%s:\"column:%s\"", tag, v.Name)
+			default:
+				tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Name)
 			}
-		case "gorm":
-			tagValue = fmt.Sprintf("%s:\"column:%s\"", tag, v.Name)
-		default:
-			tagValue = fmt.Sprintf("%s:\"%s\"", tag, v.Name)
-		}
-		if len(v.Tag) != 0 {
-			if len(tagValue) == 0 {
-				tagValue = v.Tag
-			} else {
-				tagValue = fmt.Sprintf("%s %s", v.Tag, tagValue)
+			if len(v.Tag) != 0 {
+				if len(tagValue) == 0 {
+					tagValue = v.Tag
+				} else {
+					tagValue = fmt.Sprintf("%s %s", v.Tag, tagValue)
+				}
 			}
+			self.tables[index].structColumns[i].Tag = tagValue
 		}
-		self.structColumns[i].Tag = tagValue
 	}
 	return self
 }
