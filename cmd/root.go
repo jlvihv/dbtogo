@@ -20,7 +20,6 @@ var (
 	form    bool
 	clip    bool
 	file    string
-	stdout  bool
 )
 
 var rootCmd = &cobra.Command{
@@ -50,7 +49,6 @@ func init() {
 	rootCmd.Flags().StringVarP(&tag, "tag", "", "", "生成自定义标签")
 
 	rootCmd.Flags().BoolVarP(&clip, "clip", "", false, "输出到系统剪贴板")
-	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", false, "输出到标准输出")
 	rootCmd.Flags().StringVarP(&file, "file", "", "", "输出到文件")
 
 	rootCmd.Flags().StringVarP(utils.ConfigPath(), "config", "", "config.toml", "指定配置文件所在位置")
@@ -63,7 +61,9 @@ func run() {
 		return
 	}
 	c := controller.NewController()
+
 	c.GetColumns(db, table).ConvertToStructColumns()
+
 	if json {
 		c.AddJsonTag()
 	}
@@ -79,15 +79,16 @@ func run() {
 	if yaml {
 		c.AddYamlTag()
 	}
-	if len(tag) != 0 {
-		c.AddTag(tag)
-	}
 	if comment {
 		c.AddCommentTag()
 	}
+	if len(tag) != 0 {
+		c.AddTag(tag)
+	}
+
 	c.ToUpperCamelCase().Generate()
 
-	if !clip && len(file) == 0 && !stdout {
+	if !clip && len(file) == 0 {
 		c.Stdout()
 	}
 	if clip {
@@ -95,8 +96,5 @@ func run() {
 	}
 	if len(file) != 0 {
 		c.File(file)
-	}
-	if stdout {
-		c.Stdout()
 	}
 }

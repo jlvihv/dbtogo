@@ -15,15 +15,14 @@ type controller struct {
 	Error      error
 	db         *gorm.DB
 	dbName     string
-	tableNames []string
 	tables     []table
 	structText string
 }
 
 type table struct {
-	name          string
-	columns       []*defines.TableColumn
-	structColumns []*defines.StructColumn
+	name          string                  // 表名
+	columns       []*defines.TableColumn  // sql 各字段信息
+	structColumns []*defines.StructColumn // 结构体各字段信息
 }
 
 func NewController() *controller {
@@ -46,23 +45,21 @@ func (self *controller) GetColumns(dbName, tableNames string) *controller {
 	fmt.Println("获取表信息...")
 	self.dbName = dbName
 	self.splitTableNames(tableNames)
-	var tables []table
-	for _, tableName := range self.tableNames {
+	for i, table := range self.tables {
 		var columns []*defines.TableColumn
 		gormResult := self.db.Table("columns").Select([]string{"column_name", "data_type", "column_key", "is_nullable", "column_type", "column_comment"}).
-			Where("table_schema = ? and table_name = ?", dbName, tableName).Find(&columns)
+			Where("table_schema = ? and table_name = ?", dbName, table.name).Find(&columns)
 		if err := gormResult.Error; err != nil {
 			fmt.Println(err)
 			self.Error = err
 			return self
 		}
 		if len(columns) == 0 {
-			fmt.Printf("db: %s, table: %s 没有任何信息\n", self.dbName, tableName)
+			fmt.Printf("db: %s, table: %s 没有任何信息\n", self.dbName, table.name)
 			continue
 		}
-		tables = append(tables, table{columns: columns, name: tableName})
+		self.tables[i].columns = columns
 	}
-	self.tables = tables
 	return self
 }
 
@@ -70,12 +67,10 @@ func (self *controller) splitTableNames(tableNames string) *controller {
 	if self == nil || self.Error != nil {
 		return self
 	}
-	if strings.Contains(tableNames, ",") {
-		tableNames = strings.ReplaceAll(tableNames, " ", "")
-		tableNames := strings.Split(tableNames, ",")
-		self.tableNames = tableNames
-	} else {
-		self.tableNames = []string{tableNames}
+	tableNames = strings.ReplaceAll(tableNames, " ", "")
+	tNames := strings.Split(tableNames, ",")
+	for _, tableName := range tNames {
+		self.tables = append(self.tables, table{name: tableName})
 	}
 	return self
 }
@@ -107,88 +102,7 @@ func getStructType(dbType string) string {
 	return t
 }
 
-func (self *controller) ToUpperCamelCase() *controller {
-	if self == nil || self.Error != nil || self.tables == nil || len(self.tables) == 0 {
-		return self
-	}
-	for i := range self.tables {
-		self.tables[i].name = utils.UnderscoreToUpperCamelCase(self.tables[i].name)
-		for j, column := range self.tables[i].structColumns {
-			self.tables[i].structColumns[j].Name = utils.UnderscoreToUpperCamelCase(column.Name)
-		}
-	}
-	return self
-}
-
-func (self *controller) Generate() *controller {
-	if self == nil || self.Error != nil || len(self.tables) == 0 {
-		return self
-	}
-	result := make([]string, 0, 16)
-	for _, table := range self.tables {
-		result = append(result, strings.ReplaceAll(defines.StructTemplateText["title"], "STRUCT_NAME", table.name))
-		for _, column := range table.structColumns {
-			line := defines.StructTemplateText["line"]
-			line = strings.ReplaceAll(line, "FIELD_NAME", column.Name)
-			line = strings.ReplaceAll(line, "FIELD_TYPE", column.Type)
-			if len(column.Tag) == 0 {
-				line = strings.ReplaceAll(line, "FIELD_TAG", "")
-			} else {
-				line = strings.ReplaceAll(line, "FIELD_TAG", fmt.Sprintf("`%s`", column.Tag))
-			}
-			result = append(result, line)
-		}
-		result = append(result, defines.StructTemplateText["end"])
-	}
-	self.structText = strings.Join(result, "\n")
-	return self
-}
-
-func (self *controller) Stdout() *controller {
-	if self == nil || self.Error != nil || len(self.structText) == 0 {
-		return self
-	}
-	fmt.Println(self.structText)
-	return self
-}
-
-func (self *controller) File(filename string) *controller {
-	if self == nil || self.Error != nil || len(self.structText) == 0 {
-		return self
-	}
-	fmt.Printf("输出到文件 %s ...", filename)
-	err := ioutil.WriteFile(filename, []byte(self.structText), 0644)
-	if err != nil {
-		fmt.Println("失败")
-		self.Error = err
-		return self
-	}
-	fmt.Println("成功")
-	return self
-}
-
-func (self *controller) String() string {
-	if self == nil || self.Error != nil || len(self.structText) == 0 {
-		return ""
-	}
-	fmt.Println("输出到标准输出")
-	return self.structText
-}
-
-func (self *controller) Clipboard() {
-	if self == nil || self.Error != nil || len(self.structText) == 0 {
-		return
-	}
-	fmt.Print("输出到系统剪贴板...")
-	err := clipboard.WriteAll(self.structText)
-	if err != nil {
-		fmt.Printf("\n输出到剪贴板失败 error: %s\n", err)
-		fmt.Println("请手动复制")
-		self.Stdout()
-		return
-	}
-	fmt.Println("成功")
-}
+// 加 tag
 
 func (self *controller) AddJsonTag() *controller {
 	return self.AddTag("json")
@@ -242,4 +156,92 @@ func (self *controller) AddTag(tag string) *controller {
 		}
 	}
 	return self
+}
+
+// 生成结构体文本
+
+func (self *controller) ToUpperCamelCase() *controller {
+	if self == nil || self.Error != nil || self.tables == nil || len(self.tables) == 0 {
+		return self
+	}
+	for i := range self.tables {
+		self.tables[i].name = utils.UnderscoreToUpperCamelCase(self.tables[i].name)
+		for j, column := range self.tables[i].structColumns {
+			self.tables[i].structColumns[j].Name = utils.UnderscoreToUpperCamelCase(column.Name)
+		}
+	}
+	return self
+}
+
+func (self *controller) Generate() *controller {
+	if self == nil || self.Error != nil || len(self.tables) == 0 {
+		return self
+	}
+	result := make([]string, 0, 16)
+	for _, table := range self.tables {
+		if len(table.columns) == 0 {
+			continue
+		}
+		result = append(result, strings.ReplaceAll(defines.StructTemplateText["title"], "STRUCT_NAME", table.name))
+		for _, column := range table.structColumns {
+			line := defines.StructTemplateText["line"]
+			line = strings.ReplaceAll(line, "FIELD_NAME", column.Name)
+			line = strings.ReplaceAll(line, "FIELD_TYPE", column.Type)
+			if len(column.Tag) == 0 {
+				line = strings.ReplaceAll(line, "FIELD_TAG", "")
+			} else {
+				line = strings.ReplaceAll(line, "FIELD_TAG", fmt.Sprintf("`%s`", column.Tag))
+			}
+			result = append(result, line)
+		}
+		result = append(result, defines.StructTemplateText["end"])
+	}
+	self.structText = strings.Join(result, "\n")
+	return self
+}
+
+// 输出方式
+
+func (self *controller) String() string {
+	if self == nil || self.Error != nil || len(self.structText) == 0 {
+		return ""
+	}
+	return self.structText
+}
+
+func (self *controller) Stdout() {
+	if self == nil || self.Error != nil || len(self.structText) == 0 {
+		return
+	}
+	fmt.Println(self.structText)
+}
+
+func (self *controller) File(filename string) {
+	if self == nil || self.Error != nil || len(self.structText) == 0 {
+		return
+	}
+	fmt.Printf("输出到文件 %s ...", filename)
+	err := ioutil.WriteFile(filename, []byte(self.structText), 0644)
+	if err != nil {
+		fmt.Printf("\n输出到文件失败 error: %s\n", err)
+		fmt.Println("请手动操作")
+		self.Stdout()
+		return
+	}
+	fmt.Println("成功")
+}
+
+func (self *controller) Clipboard() {
+	if self == nil || self.Error != nil || len(self.structText) == 0 {
+		return
+	}
+	fmt.Print("输出到系统剪贴板...")
+	err := clipboard.WriteAll(self.structText)
+	if err != nil {
+		fmt.Printf("\n输出到剪贴板失败 error: %s\n", err)
+		fmt.Println("请手动复制")
+		self.Stdout()
+		return
+	}
+	fmt.Println("成功")
 }
