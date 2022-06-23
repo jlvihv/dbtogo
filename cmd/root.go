@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/jlvihv/dbtogo/controller"
 	"github.com/jlvihv/dbtogo/utils"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 var (
@@ -51,7 +52,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&clip, "clip", "", false, "输出到系统剪贴板")
 	rootCmd.Flags().StringVarP(&file, "file", "", "", "输出到文件")
 
-	rootCmd.Flags().StringVarP(utils.ConfigPath(), "config", "", "config.toml", "指定配置文件所在位置")
+	rootCmd.Flags().StringVarP(utils.ConfigPath(), "config", "", "", "指定配置文件所在位置")
 }
 
 func run() {

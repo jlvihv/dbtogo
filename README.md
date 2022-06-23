@@ -14,7 +14,9 @@ go install github.com/jlvihv/dbtogo@latest
 
 使用前，必须在 config.toml 配置文件中配置数据库连接信息：
 
-可以使用 --config 选项指定配置文件位置
+默认情况下，程序会读取 `~/.config/dbtogo/config.toml` 处的配置文件
+
+可以使用 --config 选项自定义配置文件位置
 
 配置示例：config.toml
 

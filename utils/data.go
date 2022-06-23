@@ -2,10 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/jlvihv/dbtogo/defines"
 	"log"
 	"sync"
+
+	"github.com/BurntSushi/toml"
+	"github.com/jlvihv/dbtogo/defines"
+	"github.com/mitchellh/go-homedir"
 )
 
 var (
@@ -16,8 +18,17 @@ var (
 
 func GetConfig() *defines.Config {
 	once.Do(func() {
+		if configPath == "" {
+			defaultConfigPath := "~/.config/dbtogo/config.toml"
+			absConfigPath, err := homedir.Expand(defaultConfigPath)
+			if err != nil {
+				fmt.Println("获取家目录失败，无法读取配置文件")
+				log.Fatal(err)
+			}
+			configPath = absConfigPath
+		}
 		if _, err := toml.DecodeFile(configPath, &config); err != nil {
-			fmt.Println("读取配置文件失败，请检查当前目录下是否存在 config.toml 文件，以及配置文件格式是否书写正确")
+			fmt.Println("读取配置文件失败，请检查配置文件路径是否正确，以及配置文件格式是否书写正确")
 			log.Fatal(err)
 		}
 	})

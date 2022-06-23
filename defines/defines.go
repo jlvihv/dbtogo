@@ -2,8 +2,8 @@ package defines
 
 var StructTemplateText = map[string]string{
 	"title": "type STRUCT_NAME struct {",
-	"line":  "	FIELD_NAME	FIELD_TYPE	FIELD_TAG",
-	"end":   "}",
+	"line": "	FIELD_NAME	FIELD_TYPE	FIELD_TAG",
+	"end": "}",
 }
 
 // DBTypeToStructType 数据库数据类型到 go 结构体数据类型的转换规则
