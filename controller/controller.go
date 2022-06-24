@@ -84,7 +84,7 @@ func (self *controller) ConvertToStructColumns() *controller {
 		for _, column := range table.columns {
 			structColumns = append(structColumns, &defines.StructColumn{
 				Name:    column.ColumnName,
-				Type:    getStructType(column.DataType),
+				Type:    getStructType(column.DataType, column.ColumnType),
 				Tag:     "",
 				Comment: column.ColumnComment,
 			})
@@ -94,10 +94,14 @@ func (self *controller) ConvertToStructColumns() *controller {
 	return self
 }
 
-func getStructType(dbType string) string {
+func getStructType(dbType, columnType string) string {
 	t, ok := defines.DBTypeToStructType[dbType]
 	if !ok {
 		t = "unknown"
+		return t
+	}
+	if strings.Contains(columnType, "unsigned") {
+		t = "u" + t
 	}
 	return t
 }
